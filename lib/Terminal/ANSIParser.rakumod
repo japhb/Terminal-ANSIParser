@@ -31,7 +31,7 @@ class PM           is String   { }
 class APC          is String   { }
 
 
-#| Builds an ANSI parser state machine and returns it
+# Builds an ANSI parser state machine and returns it
 sub make-ansi-parser(:&emit-item!) is export {
     my $state          = Ground;
     my $string-type    = String;
@@ -44,21 +44,21 @@ sub make-ansi-parser(:&emit-item!) is export {
 
     # Action helpers
 
-    #| Ignore a byte, by emitting it by itself as an Ignored Sequence
+    # Ignore a byte, by emitting it by itself as an Ignored Sequence
     my sub ignore-byte($byte) {
         emit-item(Ignored.new(:sequence(buf8.new($byte))))
     }
 
-    #| Send an entire sequence as ignored, reset sequence state, and return to
-    #| Ground state
+    # Send an entire sequence as ignored, reset sequence state, and return to
+    # Ground state
     my sub ignore-sequence() {
         emit-item(Ignored.new(:$sequence));
         $sequence .= new;
         $state = Ground;
     }
 
-    #| Flush previous sequence if any by emitting it as Incomplete, then start
-    #| a new sequence with given byte and enter new-state
+    # Flush previous sequence if any by emitting it as Incomplete, then start
+    # a new sequence with given byte and enter new-state
     my sub flush-to-state($byte, $new-state) {
         if $sequence {
             # XXXX: Should bare ESC be considered Incomplete?
@@ -69,14 +69,14 @@ sub make-ansi-parser(:&emit-item!) is export {
         $state = $new-state;
     }
 
-    #| Add the given byte to the current sequence and enter new-state
+    # Add the given byte to the current sequence and enter new-state
     my sub record-to-state($byte, $new-state) {
         $sequence.push($byte);
         $state = $new-state;
     }
 
-    #| Use the given byte to finish the current sequence, emitting it as type,
-    #| start a new empty sequence, and enter Ground state
+    # Use the given byte to finish the current sequence, emitting it as type,
+    # start a new empty sequence, and enter Ground state
     my sub finish-sequence($byte, $type) {
         $sequence.push($byte);
         emit-item($type.new(:$sequence));
@@ -84,22 +84,22 @@ sub make-ansi-parser(:&emit-item!) is export {
         $state = Ground;
     }
 
-    #| Start recording a "string" of a particular type
+    # Start recording a "string" of a particular type
     my sub start-string($type) {
         $string-type = $type;
         $string     .= new;
     }
 
-    #| Buffer a byte into the current "string"
+    # Buffer a byte into the current "string"
     my sub buffer-string($byte) {
         $string.push($byte);
     }
 
-    #| Handle ST (String Terminator) byte, depending on current string buffer:
-    #| If the string buffer is defined, emit a typed String and clear the
-    #| buffer; elsif there is a non-empty sequence, add the ST byte and send
-    #| the sequence as Ignored; else emit the ST byte on its own.  In any case,
-    #| start a new sequence and drop to the Ground state.
+    # Handle ST (String Terminator) byte, depending on current string buffer:
+    # If the string buffer is defined, emit a typed String and clear the
+    # buffer; elsif there is a non-empty sequence, add the ST byte and send
+    # the sequence as Ignored; else emit the ST byte on its own.  In any case,
+    # start a new sequence and drop to the Ground state.
     my sub handle-st() {
         if $string.defined {
             emit-item($string-type.new(:$sequence, :$string));
