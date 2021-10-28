@@ -1,4 +1,4 @@
-unit class Terminal::ANSIParser:ver<0.0.1>;
+unit module Terminal::ANSIParser:auth<zef:japhb>:ver<0.0.1>;
 
 
 =begin pod
