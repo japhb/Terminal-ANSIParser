@@ -1,0 +1,10 @@
+use v6.d;
+use Test;
+
+use Terminal::ANSIParser;
+
+
+pass "all modules loaded successfully";
+
+
+done-testing;

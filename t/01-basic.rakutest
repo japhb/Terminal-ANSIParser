@@ -1,6 +1,0 @@
-use Test;
-use Terminal::ANSIParser;
-
-pass "replace me";
-
-done-testing;
