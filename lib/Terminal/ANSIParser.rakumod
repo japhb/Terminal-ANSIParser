@@ -70,12 +70,6 @@ sub make-ansi-parser(:&emit-item!) is export {
         $state = $new-state;
     }
 
-    # Add the given byte to the current sequence and enter new-state
-    my sub record-to-state($byte, $new-state) {
-        $sequence.push($byte);
-        $state = $new-state;
-    }
-
     # Use the given byte to finish the current sequence, emitting it as type,
     # start a new empty sequence, and enter Ground state
     my sub finish-sequence($byte, $type) {
@@ -129,14 +123,14 @@ sub make-ansi-parser(:&emit-item!) is export {
     my &flush-to-osc    := { flush-to-state($_, OSC_String); start-string(OSC) };
     my &flush-to-pm     := { flush-to-state($_, PM_String);  start-string(PM)  };
     my &flush-to-apc    := { flush-to-state($_, APC_String); start-string(APC) };
-    my &record-to-esc-i := { record-to-state($_, Escape_Intermediate) };
-    my &record-to-csi-p := { record-to-state($_, CSI_Param)           };
-    my &record-to-csi-i := { record-to-state($_, CSI_Intermediate)    };
-    my &record-to-csi-x := { record-to-state($_, CSI_Ignore)          };
-    my &record-to-dcs-p := { record-to-state($_, DCS_Param)           };
-    my &record-to-dcs-i := { record-to-state($_, DCS_Intermediate)    };
-    my &record-to-dcs-x := { record-to-state($_, DCS_Ignore)          };
-    my &record-to-dcs-s := { record-to-state($_, DCS_Passthrough); start-string(DCS) };
+    my &record-to-esc-i := { $sequence.push($_); $state = Escape_Intermediate  };
+    my &record-to-csi-p := { $sequence.push($_); $state = CSI_Param            };
+    my &record-to-csi-i := { $sequence.push($_); $state = CSI_Intermediate     };
+    my &record-to-csi-x := { $sequence.push($_); $state = CSI_Ignore           };
+    my &record-to-dcs-p := { $sequence.push($_); $state = DCS_Param            };
+    my &record-to-dcs-i := { $sequence.push($_); $state = DCS_Intermediate     };
+    my &record-to-dcs-x := { $sequence.push($_); $state = DCS_Ignore           };
+    my &record-to-dcs-s := { $sequence.push($_); $state = DCS_Passthrough; start-string(DCS) };
     my &finish-escape   := { finish-sequence($_, SimpleEscape)        };
     my &finish-csi      := { finish-sequence($_, CSI)                 };
 
@@ -198,12 +192,12 @@ sub make-ansi-parser(:&emit-item!) is export {
     # Escape state actions
     my $dispatch     = @actions[Escape];
     $dispatch[$_]   := &record-to-esc-i for 0x20..0x2F;
-    $dispatch[0x5B] := { record-to-state($_, CSI_Entry)  };
-    $dispatch[0x50] := { record-to-state($_, DCS_Entry)  };
-    $dispatch[0x58] := { record-to-state($_, SOS_String); start-string(SOS) };
-    $dispatch[0x5D] := { record-to-state($_, OSC_String); start-string(OSC) };
-    $dispatch[0x5E] := { record-to-state($_, PM_String);  start-string(PM)  };
-    $dispatch[0x5F] := { record-to-state($_, APC_String); start-string(APC) };
+    $dispatch[0x5B] := { $sequence.push($_); $state = CSI_Entry  };
+    $dispatch[0x50] := { $sequence.push($_); $state = DCS_Entry  };
+    $dispatch[0x58] := { $sequence.push($_); $state = SOS_String; start-string(SOS) };
+    $dispatch[0x5D] := { $sequence.push($_); $state = OSC_String; start-string(OSC) };
+    $dispatch[0x5E] := { $sequence.push($_); $state = PM_String;  start-string(PM)  };
+    $dispatch[0x5F] := { $sequence.push($_); $state = APC_String; start-string(APC) };
 
     # Escape_Intermediate state actions
     $dispatch        = @actions[Escape_Intermediate];
