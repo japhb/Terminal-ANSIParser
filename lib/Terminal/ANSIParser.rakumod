@@ -61,7 +61,7 @@ sub make-ansi-parser(:&emit-item!) is export {
     # Flush previous sequence if any by emitting it as Incomplete, then start
     # a new sequence with given byte and enter new-state
     my sub flush-to-state($byte, $new-state) {
-        if $sequence {
+        if $sequence.elems {
             # XXXX: Should bare ESC be considered Incomplete?
             emit-item(Incomplete.new(:$sequence));
             $sequence .= new;
@@ -107,7 +107,7 @@ sub make-ansi-parser(:&emit-item!) is export {
             $string-type = String;
             $string      = Nil;
         }
-        elsif $sequence {
+        elsif $sequence.elems {
             $sequence.push($st);
             emit-item(Ignored.new(:$sequence));
         }
