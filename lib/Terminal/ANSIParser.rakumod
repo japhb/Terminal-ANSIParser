@@ -100,18 +100,18 @@ sub make-ansi-parser(:&emit-item!) is export {
     # buffer; elsif there is a non-empty sequence, add the ST byte and send
     # the sequence as Ignored; else emit the ST byte on its own.  In any case,
     # start a new sequence and drop to the Ground state.
-    my sub handle-st() {
+    my sub handle-st($st) {
         if $string.defined {
             emit-item($string-type.new(:$sequence, :$string));
             $string-type = String;
             $string      = Nil;
         }
         elsif $sequence {
-            $sequence.push(0x9C);
+            $sequence.push($st);
             emit-item(Ignored.new(:$sequence));
         }
         else {
-            emit-item(0x9C);
+            emit-item($st);
         }
 
         $sequence .= new;
