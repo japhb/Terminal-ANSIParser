@@ -1,0 +1,87 @@
+use v6.d;
+use Test;
+use lib $*PROGRAM.sibling('lib');
+use ParserTestHelpers;
+
+use Terminal::ANSIParser;
+
+
+plan 28;
+
+
+# General ranges
+
+my @ignore-c0       = flat 0x00..0x17, 0x19, 0x1C..0x1F;
+my @general-c1      = flat 0x80..0x8F, 0x91..0x97, 0x99, 0x9A;
+my @non-control     = flat 0x20..0x7F, 0xA0..0xFF;
+my @command-safe    = flat 0x08..0x0D, 0x20..0x7E, 0xA0..0xFF;
+my @character-safe  = flat 0x00..0x1A, 0x1C..0x9B, 0x9D..0xFF;
+my @char-safe-vt500 = flat @ignore-c0, @non-control;
+
+
+# OSC Strings
+
+for 0x9D, (0x1B, 0x5D) -> $introducer {
+    my @input    = flat $introducer.list, @ignore-c0, @non-control, 0x9C;
+    my $expected = buf8.new(@non-control);
+    my @parsed  := parse-all(@input);
+    my $ignore   = @ignore-c0.elems;
+
+    is     @parsed.elems, $ignore + 1,
+           "$ignore ignored bytes and one sequence matched for introducer $introducer";
+    isa-ok @parsed[*-1], Terminal::ANSIParser::OSC,
+           "$introducer sequence is an OSC String";
+    is     @parsed[*-1].string, $expected,
+           'ignorable control bytes skipped; non-control bytes kept';
+
+    subtest 'ignored bytes all wrapped in Ignored objects', {
+        isa-ok @parsed[$_], Terminal::ANSIParser::Ignored for ^@parsed.end;
+    }
+    subtest 'ignored bytes arrived in correct order', {
+        is @parsed[$_].sequence[0], @ignore-c0[$_] for ^@parsed.end;
+    }
+}
+
+
+# PM Strings
+for 0x9E, (0x1B, 0x5E) -> $introducer {
+    my @input    = flat $introducer.list, @command-safe, 0x9C;
+    my $expected = buf8.new(@command-safe);
+    my @parsed  := parse-all(@input);
+
+    is     @parsed.elems, 1, "One sequence parsed for introducer $introducer";
+    isa-ok @parsed[0], Terminal::ANSIParser::PM,
+           "$introducer sequence is an PM String";
+    is     @parsed[0].string, $expected, "All expected bytes passed through";
+}
+
+
+# APC Strings
+for 0x9F, (0x1B, 0x5F) -> $introducer {
+    my @input    = flat $introducer.list, @command-safe, 0x9C;
+    my $expected = buf8.new(@command-safe);
+    my @parsed  := parse-all(@input);
+
+    is     @parsed.elems, 1, "One sequence parsed for introducer $introducer";
+    isa-ok @parsed[0], Terminal::ANSIParser::APC,
+           "$introducer sequence is an APC String";
+    is     @parsed[0].string, $expected, "All expected bytes passed through";
+}
+
+
+# SOS Strings: VT500-safe subset
+# XXXX: VT500 and ECMA-48 disagree on the bytes safe in an SOS character string
+#       so testing here against the more restrictive VT500 set
+for 0x98, (0x1B, 0x58) -> $introducer {
+    my @input    = flat $introducer.list, @char-safe-vt500, 0x9C;
+    my $expected = buf8.new(@char-safe-vt500);
+    my @parsed  := parse-all(@input);
+
+    is     @parsed.elems, 1, "One sequence parsed for introducer $introducer (VT500-safe subset)";
+    isa-ok @parsed[0], Terminal::ANSIParser::SOS,
+           "$introducer sequence is an SOS String";
+    is     @parsed[0].string, $expected, "All expected bytes passed through";
+}
+
+
+done-testing;
