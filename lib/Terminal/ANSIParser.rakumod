@@ -9,13 +9,13 @@ enum DecodeState < Ground Escape Escape_Intermediate
                    OSC_String SOS_String PM_String APC_String >;
 
 class Sequence {
-    has buf8 $.sequence is required;
+    has $.sequence is required;
 
     method Str { $.sequence.decode }
 }
 
 class String is Sequence {
-    has buf8 $.string;
+    has $.string is required;
 
     method Str { $.string.decode }
 }
