@@ -38,3 +38,14 @@ sub n-byte-simple-escape(@input, $n) is export {
 
     @parsed
 }
+
+sub csi-test(@input, $desc) is export {
+    my $expected = buf8.new(@input);
+    my @parsed  := parse-all(@input);
+
+    subtest $desc, {
+        is     @parsed.elems, 1, "One sequence parsed for @input[]";
+        isa-ok @parsed[0], Terminal::ANSIParser::CSI, "CSI detected";
+        is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
+    }
+}

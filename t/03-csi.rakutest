@@ -1,0 +1,56 @@
+use v6.d;
+use Test;
+use lib $*PROGRAM.sibling('lib');
+use ParserTestHelpers;
+
+use Terminal::ANSIParser;
+
+
+plan 6;
+
+
+for 0x9B, (0x1B, 0x5B) -> $introducer {
+    # CSI + Final Byte
+    subtest "All final bytes produce valid sequences for CSI $introducer", {
+        for flat 0x40..0x7E, 0xC0..0xFF -> $fb {
+            my @input = flat $introducer.list, $fb;
+            csi-test(@input, "CSI + Final Byte $fb parsed correctly");
+        }
+    }
+
+    # CSI + Intermediate Byte + Final Byte
+    subtest "Single intermediate bytes produce valid sequences for CSI $introducer", {
+        for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
+            my @input = flat $introducer.list, $ib, $ib + 0x20;
+            csi-test(@input, "CSI + Intermediate Byte $ib + Final Byte {$ib + 0x20} parsed correctly");
+        }
+    }
+
+    # CSI + 2 Intermediate Bytes + Final Byte
+    subtest "Dual intermediate bytes produce valid sequences for CSI $introducer", {
+        for flat 0x20..0x2F, 0xA1..0xAF -> $ib1 {
+            for flat 0x20..0x2F, 0xA1..0xAF -> $ib2 {
+                my @input = flat $introducer.list, $ib1, $ib2, $ib1 + 0x30;
+                csi-test(@input, "CSI + 2 Intermediate Bytes $ib1, $ib2 + Final Byte {$ib1 + 0x30} parsed correctly");
+            }
+        }
+    }
+
+    # CSI + params + Final Byte
+
+    # CSI + params + Intermediate Bytes + Final Byte
+}
+
+
+### CSI Ignore
+
+# CSI + 3A
+
+# CSI + intermediates + 30-3F
+
+# CSI + params + 3A,3C-3F
+
+# CSI + params + intermediates + 30-3F
+
+
+done-testing;
