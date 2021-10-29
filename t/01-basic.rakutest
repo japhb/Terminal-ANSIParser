@@ -1,0 +1,83 @@
+use v6.d;
+use Test;
+use lib $*PROGRAM.sibling('lib');
+use ParserTestHelpers;
+
+use Terminal::ANSIParser;
+
+
+plan 30;
+
+
+# MRO
+
+isa-ok $_, Terminal::ANSIParser::Sequence,
+           "{.^name} is a Terminal::ANSIParser::Sequence" for
+           Terminal::ANSIParser::Ignored,
+           Terminal::ANSIParser::Incomplete,
+           Terminal::ANSIParser::SimpleEscape,
+           Terminal::ANSIParser::CSI,
+           Terminal::ANSIParser::String;
+
+isa-ok $_, Terminal::ANSIParser::String,
+           "{.^name} is a Terminal::ANSIParser::String" for
+           Terminal::ANSIParser::DCS,
+           Terminal::ANSIParser::OSC,
+           Terminal::ANSIParser::SOS,
+           Terminal::ANSIParser::PM,
+           Terminal::ANSIParser::APC;
+
+
+# PASSTHROUGHS
+
+my @input = flat 0x20..0x7F, 0xA0..0xFF;
+passthrough @input, 'in Ground state, all non-controls pass through';
+
+@input = flat 0x00..17, 0x19, 0x1C..0x1F;
+passthrough @input, 'in Ground state, most C0 controls pass through';
+
+@input = flat 0x18, 0x1A, 0x80..0x8F, 0x91..0x97, 0x99, 0x9A, 0x9C;
+passthrough @input, 'in Ground state, most other controls pass through';
+
+
+# SIMPLE ESCAPES
+
+# Two-byte simple escape sequences
+@input = gather for flat 0x30..0x4F, 0x51..0x57, 0x59, 0x5A, 0x5C, 0x60..0x7E,
+                         0xB0..0xCF, 0xD1..0xD7, 0xD9, 0xDA, 0xDC, 0xE0..0xFE -> $b {
+    .take for 0x1B, $b;
+}
+my @parsed := n-byte-simple-escape(@input, 2);
+subtest "second byte of parsed results is a non-control, non-intermediate byte", {
+    ok(.sequence[1] ~~ 0x30..0x7E || .sequence[1] ~~ 0xB0..0xFF) for @parsed;
+}
+
+# Three-byte simple escape sequences
+@input = gather for 0x20..0x2F -> $b {
+    .take for 0x1B, $b, $b * 2;
+}
+@parsed := n-byte-simple-escape(@input, 3);
+subtest "second byte of parsed results is an intermediate byte", {
+    ok(.sequence[1] ~~ 0x20..0x2F) for @parsed;
+}
+subtest "third byte of parsed results is a non-control, non-intermediate byte", {
+    ok(.sequence[2] ~~ 0x30..0x7E || .sequence[2] ~~ 0xB0..0xFF) for @parsed;
+}
+
+# Four-byte simple escape sequences
+@input = gather for 0x20..0x2F -> $b1 {
+    for 0x20..0x2F -> $b2 {
+        .take for 0x1B, $b1, $b2, $b1 + $b2;
+    }
+}
+@parsed := n-byte-simple-escape(@input, 4);
+subtest "second and third bytes of parsed results are intermediate bytes", {
+    ok(.sequence[1] ~~ 0x20..0x2F) for @parsed;
+    ok(.sequence[2] ~~ 0x20..0x2F) for @parsed;
+}
+subtest "fourth byte of parsed results is a non-control, non-intermediate byte", {
+    ok(.sequence[3] ~~ 0x30..0x7E || .sequence[3] ~~ 0xB0..0xFF) for @parsed;
+}
+
+
+done-testing;
