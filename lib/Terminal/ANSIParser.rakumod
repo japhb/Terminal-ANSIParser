@@ -49,9 +49,10 @@ sub make-ansi-parser(:&emit-item!) is export {
         emit-item(Ignored.new(:sequence(buf8.new($byte))))
     }
 
-    # Send an entire sequence as ignored, reset sequence state, and return to
-    # Ground state
-    my sub ignore-sequence() {
+    # Send an entire sequence (including current byte) as ignored, reset
+    # sequence state, and return to Ground state
+    my sub ignore-sequence($byte) {
+        $sequence.push($byte);
         emit-item(Ignored.new(:$sequence));
         $sequence .= new;
         $state = Ground;
@@ -65,7 +66,7 @@ sub make-ansi-parser(:&emit-item!) is export {
             emit-item(Incomplete.new(:$sequence));
             $sequence .= new;
         }
-        $sequence.push($byte);
+        $sequence.push($byte) if $byte.defined;
         $state = $new-state;
     }
 
@@ -264,7 +265,7 @@ sub make-ansi-parser(:&emit-item!) is export {
     @default[CSI_Entry]           := &finish-csi;
     @default[CSI_Param]           := &finish-csi;
     @default[CSI_Intermediate]    := &finish-csi;
-    @default[CSI_Ignore]          := { $sequence.push($_); &ignore-sequence };
+    @default[CSI_Ignore]          := &ignore-sequence;
     @default[DCS_Entry]           := &record-to-dcs-s;
     @default[DCS_Param]           := &record-to-dcs-s;
     @default[DCS_Intermediate]    := &record-to-dcs-s;
