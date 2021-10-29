@@ -279,7 +279,8 @@ sub make-ansi-parser(:&emit-item!) is export {
 
     # Return generated parser step closure
     sub ansi-parse-byte($byte) {
-        (@actions[$state][$byte] || @default[$state])($byte);
+        $byte.defined ?? (@actions[$state][$byte] || @default[$state])($byte)
+                      !! flush-to-state($byte, Ground);
     }
 }
 
@@ -330,6 +331,7 @@ A few C<Sequence> subclasses exist for separate cases:
 =item C<Ignored>: invalid sequences that the parser decides should be ignored
 
 =item C<Incomplete>: sequences that were cut off by the start of another sequence
+      or the end of the input data (signaled by parsing an undefined "byte")
 
 =item C<SimpleEscape>: simple escape sequences such as function key codes
 

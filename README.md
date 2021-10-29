@@ -33,7 +33,7 @@ A few `Sequence` subclasses exist for separate cases:
 
   * `Ignored`: invalid sequences that the parser decides should be ignored
 
-  * `Incomplete`: sequences that were cut off by the start of another sequence
+  * `Incomplete`: sequences that were cut off by the start of another sequence or the end of the input data (signaled by parsing an undefined "byte")
 
   * `SimpleEscape`: simple escape sequences such as function key codes
 
