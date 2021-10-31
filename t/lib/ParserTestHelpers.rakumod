@@ -60,3 +60,25 @@ sub csi-ignore(@input, $desc) is export {
         is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
     }
 }
+
+sub dcs-test(@input, @sequence, $string, $desc) is export {
+    my @parsed := parse-all(@input);
+
+    subtest $desc, {
+        is     @parsed.elems, 1, "One sequence parsed for @sequence[] + string";
+        isa-ok @parsed[0], Terminal::ANSIParser::DCS, "DCS recognized";
+        is     @parsed[0].sequence, buf8.new(@sequence), "Sequence has expected bytes";
+        is     @parsed[0].string, $string, "String has expected bytes";
+    }
+}
+
+sub dcs-ignore(@input, @sequence, $desc) is export {
+    my $expected = buf8.new(@input);
+    my @parsed  := parse-all(@input);
+
+    subtest $desc, {
+        is     @parsed.elems, 1, "One sequence parsed for @sequence[] + string";
+        isa-ok @parsed[0], Terminal::ANSIParser::Ignored, "Sequence Ignored";
+        is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
+    }
+}
