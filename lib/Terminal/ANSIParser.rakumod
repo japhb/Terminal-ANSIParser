@@ -164,7 +164,7 @@ sub make-ansi-parser(:&emit-item!) is export {
     }
 
     # States that ignore most C0 controls
-    for DCS_Entry, DCS_Param, DCS_Intermediate, DCS_Ignore, OSC_String -> $id {
+    for DCS_Entry, DCS_Param, DCS_Intermediate, OSC_String -> $id {
         my $dispatch = @actions[$id];
 
         $dispatch[$_] := &ignore-byte
