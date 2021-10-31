@@ -70,7 +70,7 @@ for 0x9B, (0x1B, 0x5B) -> $introducer {
             }
 
             for 0x30, 0x3B, 0xB0, 0xBB -> $pb {
-                for 0x20, 0x2F, 0xAF -> $ib {
+                for 0x20, 0x2F, 0xA1, 0xAF -> $ib {
                     for flat 0x30..0x3F, 0xB0..0xBF -> $error {
                         my @input = flat $introducer.list, $pb, $ib, $error, $final;
                         csi-ignore(@input, "CSI + $pb + $ib + $error + $final is ignored");
