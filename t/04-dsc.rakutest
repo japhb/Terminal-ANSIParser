@@ -1,0 +1,121 @@
+use v6.d;
+use Test;
+use lib $*PROGRAM.sibling('lib');
+use ParserTestHelpers;
+
+use Terminal::ANSIParser;
+
+
+plan 14;
+
+
+my @passthrough = flat 0x00..0x17, 0x19, 0x1C..0x1F, 0x20..0x7E, 0xA1..0xFF;
+my $expected    = buf8.new(@passthrough);
+
+for 0x90, (0x1B, 0x50) -> $introducer {
+    # DCS + Final Byte
+    subtest "All final sequence bytes produce valid strings for DCS $introducer", {
+        for flat 0x40..0x7E, 0xC0..0xFE -> $final {
+            my @sequence = flat $introducer.list, $final;
+            my @input    = flat @sequence, @passthrough, 0x9C;
+
+            dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+        }
+    }
+
+    # DCS + Intermediate Byte + Final Byte
+    subtest "One intermediate byte + final byte produce valid strings for DCS $introducer", {
+        for 0x40, 0x7E, 0xC0, 0xFE -> $final {
+            for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
+                my @sequence = flat $introducer.list, $ib, $final;
+                my @input    = flat @sequence, @passthrough, 0x9C;
+
+                dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+            }
+        }
+    }
+
+    # DCS + 2 Intermediate Bytes + Final Byte
+    subtest "Two intermediate bytes + final byte produce valid strings for DCS $introducer", {
+        for 0x40, 0x7E, 0xC0, 0xFE -> $final {
+            for flat 0x20..0x2F, 0xA1..0xAF -> $ib1 {
+                for flat 0x20..0x2F, 0xA1..0xAF -> $ib2 {
+                    my @sequence = flat $introducer.list, $ib1, $ib2, $final;
+                    my @input    = flat @sequence, @passthrough, 0x9C;
+
+                    dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+                }
+            }
+        }
+    }
+
+    # DCS + 1 Parameter Byte + Final Byte
+    subtest "Single Parameter Byte DCS produces valid strings for DCS $introducer", {
+        for 0x40, 0x7E, 0xC0, 0xFE -> $final {
+            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
+                my @sequence = flat $introducer.list, $pb, $final;
+                my @input    = flat @sequence, @passthrough, 0x9C;
+
+                dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+            }
+        }
+    }
+
+    # DCS + 2 Parameter Bytes + Final Byte
+    subtest "Dual Parameter Byte DCS produces valid strings for DCS $introducer", {
+        for 0x40, 0x7E, 0xC0, 0xFE -> $final {
+            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb1 {
+                for flat 0x30..0x39, 0x3B, 0xB0..0xB9, 0xBB -> $pb2 {
+                    my @sequence = flat $introducer.list, $pb1, $pb2, $final;
+                    my @input    = flat @sequence, @passthrough, 0x9C;
+
+                    dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+                }
+            }
+        }
+    }
+
+    # DCS + Parameter + Intermediate + Final Byte
+    subtest "Parameter + Intermediate DCS produces valid strings for DCS $introducer", {
+        for 0x40, 0x7E, 0xC0, 0xFE -> $final {
+            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
+                for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
+                    my @sequence = flat $introducer.list, $pb, $ib, $final;
+                    my @input    = flat @sequence, @passthrough, 0x9C;
+
+                    dcs-test(@input, @sequence, $expected, "@sequence[] + string");
+                }
+            }
+        }
+    }
+
+    # DCS Ignores
+    subtest "Invalid sequences correctly ignored for DCS $introducer", {
+        my @sequence = flat $introducer.list, 0x3A;
+        my @input    = flat @sequence, @passthrough, 0x9C;
+        dcs-ignore(@input, @sequence, "DCS + 0x3A + string is ignored");
+
+        for 0x20, 0x2F, 0xA1, 0xAF -> $ib {
+            for flat 0x30..0x3F, 0xB0..0xBF -> $error {
+                my @sequence = flat $introducer.list, $ib, $error;
+                my @input    = flat @sequence, @passthrough, 0x9C;
+                dcs-ignore(@input, @sequence,
+                           "DCS + $ib + $error + string is ignored");
+            }
+        }
+
+        for 0x30, 0x3B, 0xB0, 0xBB -> $pb {
+            for 0x20, 0x2F, 0xA1, 0xAF -> $ib {
+                for flat 0x30..0x3F, 0xB0..0xBF -> $error {
+                    my @sequence = flat $introducer.list, $pb, $ib, $error;
+                    my @input    = flat @sequence, @passthrough, 0x9C;
+                    dcs-ignore(@input, @sequence,
+                               "DCS + $pb + $ib + $error + string is ignored");
+                }
+            }
+        }
+    }
+}
+
+
+done-testing;
