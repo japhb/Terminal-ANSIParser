@@ -49,3 +49,14 @@ sub csi-test(@input, $desc) is export {
         is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
     }
 }
+
+sub csi-ignore(@input, $desc) is export {
+    my $expected = buf8.new(@input);
+    my @parsed  := parse-all(@input);
+
+    subtest $desc, {
+        is     @parsed.elems, 1, "One sequence parsed for @input[]";
+        isa-ok @parsed[0], Terminal::ANSIParser::Ignored, "Sequence Ignored";
+        is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
+    }
+}
