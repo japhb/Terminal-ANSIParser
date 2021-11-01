@@ -82,3 +82,16 @@ sub dcs-ignore(@input, @sequence, $desc) is export {
         is     @parsed[0].sequence, $expected, "Sequence has expected bytes";
     }
 }
+
+sub incomplete(@partial, $flusher) is export {
+    my @input   = flat @partial, $flusher;
+    my @parsed := parse-all(@input);
+
+    subtest "Flush after @partial[]", {
+        is     @parsed.elems, 1, "One sequence flushed for @partial[]";
+        isa-ok @parsed[0], Terminal::ANSIParser::Incomplete,
+               "Incomplete sequence recognized";
+        is     @parsed[0].sequence, buf8.new(@partial),
+               "Flushed incomplete sequence has expected bytes";
+    }
+}
