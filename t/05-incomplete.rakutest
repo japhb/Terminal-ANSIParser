@@ -26,23 +26,6 @@ for @flushers -> $flush {
         }
 
         for 0x90, 0x9B, (0x1B, 0x50), (0x1B, 0x5B) -> $introducer {
-            for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
-                my @partial = flat $introducer.list, $ib;
-                incomplete(@partial, $flush);
-            }
-
-            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
-                my @partial = flat $introducer.list, $pb;
-                incomplete(@partial, $flush);
-            }
-
-            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
-                for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
-                    my @partial = flat $introducer.list, $pb;
-                    incomplete(@partial, $flush);
-                }
-            }
-
             for 0x3A, (0x30, 0x3A), (0x39, 0x3C), (0x3B, 0x3D), (0x3C, 0x3E),
                 (0x3D, 0x3F), (0x20, 0x3F), (0x3E, 0x2F, 0x33) -> $ignore-path {
                 my @partial = flat $introducer.list, $ignore-path.list;
