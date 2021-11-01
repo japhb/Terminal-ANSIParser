@@ -1,6 +1,6 @@
 use v6.d;
 use Test;
-use lib $*PROGRAM.sibling('lib');
+use lib $*PROGRAM.parent.sibling('t').child('lib');
 use ParserTestHelpers;
 
 use Terminal::ANSIParser;
