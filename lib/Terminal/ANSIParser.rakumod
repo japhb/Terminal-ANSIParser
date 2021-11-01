@@ -294,7 +294,7 @@ use Terminal::ANSIParser;
 
 my @parsed;
 my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ });
-parse-byte($_) for $input-buffer;
+parse-byte($_) for $input-buffer.list;
 
 =end code
 
