@@ -1,0 +1,64 @@
+use v6.d;
+use Test;
+use lib $*PROGRAM.sibling('lib');
+use ParserTestHelpers;
+
+use Terminal::ANSIParser;
+
+
+plan 8;
+
+
+my @seconds  = flat 0x20..0x2F, 0x50, 0x58, 0x5B, 0x5D..0x5F;
+my @starters = flat 0x1B,       0x90, 0x98, 0x9B, 0x9D..0x9F;
+my @flushers = flat @starters, Nil;
+
+for @flushers -> $flush {
+    subtest "{$flush // 'undefined'} flushes properly", {
+        for @starters -> $start {
+            my @partial = $start,;
+            incomplete(@partial, $flush);
+        }
+
+        for @seconds -> $second {
+            my @partial = 0x1B, $second;
+            incomplete(@partial, $flush);
+        }
+
+        for 0x90, 0x9B, (0x1B, 0x50), (0x1B, 0x5B) -> $introducer {
+            for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
+                my @partial = flat $introducer.list, $ib;
+                incomplete(@partial, $flush);
+            }
+
+            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
+                my @partial = flat $introducer.list, $pb;
+                incomplete(@partial, $flush);
+            }
+
+            for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
+                for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
+                    my @partial = flat $introducer.list, $pb;
+                    incomplete(@partial, $flush);
+                }
+            }
+
+            for 0x3A, (0x30, 0x3A), (0x39, 0x3C), (0x3B, 0x3D), (0x3C, 0x3E),
+                (0x3D, 0x3F), (0x20, 0x3F), (0x3E, 0x2F, 0x33) -> $ignore-path {
+                my @partial = flat $introducer.list, $ignore-path.list;
+                incomplete(@partial, $flush);
+            }
+        }
+
+        for 0x90, (0x1B, 0x50) -> $introducer {
+            for 0x40, 0x7E, 0xC0, 0xFE, (0x20, 0x41), (0x31, 0x42),
+                (0x32, 0x22, 0x43) -> $passthrough-path {
+                my @partial = flat $introducer.list, $passthrough-path.list;
+                incomplete(@partial, $flush);
+            }
+        }
+    }
+}
+
+
+done-testing;
