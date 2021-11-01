@@ -1,3 +1,5 @@
+[![Actions Status](https://github.com/japhb/Terminal-ANSIParser/workflows/test/badge.svg)](https://github.com/japhb/Terminal-ANSIParser/actions)
+
 NAME
 ====
 
