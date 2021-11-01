@@ -6,7 +6,7 @@ use ParserTestHelpers;
 use Terminal::ANSIParser;
 
 
-plan 12;
+plan 6;
 
 
 for 0x9B, (0x1B, 0x5B) -> $introducer {
@@ -26,36 +26,6 @@ for 0x9B, (0x1B, 0x5B) -> $introducer {
         }
     }
 
-    # CSI + 2 Intermediate Bytes + Final Byte
-    subtest "Dual intermediate bytes produce valid sequences for CSI $introducer", {
-        for flat 0x20..0x2F, 0xA1..0xAF -> $ib1 {
-            for flat 0x20..0x2F, 0xA1..0xAF -> $ib2 {
-                my @input = flat $introducer.list, $ib1, $ib2, $ib1 + 0x30;
-                csi-test(@input, "CSI + 2 Intermediate Bytes $ib1, $ib2 + Final Byte {$ib1 + 0x30} parsed correctly");
-            }
-        }
-    }
-
-    # CSI + params + Final Byte
-    subtest "Parameterized CSI produces valid sequences for CSI $introducer", {
-        for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb1 {
-            for flat 0x30..0x39, 0x3B, 0xB0..0xB9, 0xBB -> $pb2 {
-                my @input = flat $introducer.list, $pb1, $pb2, $pb1 + 0x28;
-                csi-test(@input, "CSI + 2 Parameter Bytes $pb1, $pb2 + Final Byte {$pb1 + 0x28} parsed correctly");
-            }
-        }
-    }
-
-    # CSI + params + Intermediate Bytes + Final Byte
-    subtest "Parameterized CSI with intermediate bytes produces valid sequences for CSI $introducer", {
-        for flat 0x30..0x39, 0x3B..0x3F, 0xB0..0xB9, 0xBB..0xBF -> $pb {
-            for flat 0x20..0x2F, 0xA1..0xAF -> $ib {
-                my @input = flat $introducer.list, $pb, $ib, $ib, $pb + 0x28;
-                csi-test(@input, "CSI + Parameter Byte $pb + 2 Intermediate Bytes $ib, $ib + Final Byte {$pb + 0x28} parsed correctly");
-            }
-        }
-    }
-
     # CSI Ignores
     subtest "Invalid sequences correctly ignored for CSI $introducer", {
         for 0x40, 0x7E, 0xC0, 0xFE -> $final {
@@ -66,15 +36,6 @@ for 0x9B, (0x1B, 0x5B) -> $introducer {
                 for flat 0x30..0x3F, 0xB0..0xBF -> $error {
                     my @input = flat $introducer.list, $ib, $error, $final;
                     csi-ignore(@input, "CSI + $ib + $error + $final is ignored");
-                }
-            }
-
-            for 0x30, 0x3B, 0xB0, 0xBB -> $pb {
-                for 0x20, 0x2F, 0xA1, 0xAF -> $ib {
-                    for flat 0x30..0x3F, 0xB0..0xBF -> $error {
-                        my @input = flat $introducer.list, $pb, $ib, $error, $final;
-                        csi-ignore(@input, "CSI + $pb + $ib + $error + $final is ignored");
-                    }
                 }
             }
         }
