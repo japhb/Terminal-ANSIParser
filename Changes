@@ -1,4 +1,8 @@
 Revision history for Terminal-ANSIParser
 
+0.0.2  2021-11-02
+  - Improve behavior at end of input, passing EOI marker downstream
+
+
 0.0.1  2021-10-31
   - Initial version, bare byte-by-byte parser generator
