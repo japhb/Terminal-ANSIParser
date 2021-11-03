@@ -58,15 +58,17 @@ sub make-ansi-parser(:&emit-item!) is export {
         $state = Ground;
     }
 
-    # Flush previous sequence if any by emitting it as Incomplete, then start
-    # a new sequence with given byte and enter new-state
+    # Flush previous sequence if any by emitting it as Incomplete, then start a
+    # new sequence with given byte (or signal end of input by emitting an
+    # undefined "byte") and enter new-state
     my sub flush-to-state($byte, $new-state) {
         if $sequence.elems {
             # XXXX: Should bare ESC be considered Incomplete?
             emit-item(Incomplete.new(:$sequence));
             $sequence .= new;
         }
-        $sequence.push($byte) if $byte.defined;
+        $byte.defined ?? $sequence.push($byte)
+                      !! emit-item($byte);
         $state = $new-state;
     }
 
@@ -324,8 +326,8 @@ A few C<Sequence> subclasses exist for separate cases:
 
 =item C<Ignored>: invalid sequences that the parser decides should be ignored
 
-=item C<Incomplete>: sequences that were cut off by the start of another sequence
-      or the end of the input data (signaled by parsing an undefined "byte")
+=item C<Incomplete>: sequences that were cut off by the start of another
+      sequence or the end of the input data (see L<End of Input> below)
 
 =item C<SimpleEscape>: simple escape sequences such as function key codes
 
@@ -342,6 +344,14 @@ Likewise, C<String> has its own subclasses:
 =item C<PM>: Privacy Message (NOTE: NOT A SECURE FUNCTION)
 
 =item C<APC>: Application Program Command
+
+
+=head2 End of Input
+
+End of input can be signaled by parsing an undefined "byte"; any partial
+sequence in progress will be flushed as C<Incomplete>, and the undefined
+marker will be emitted as well, so that downstream consumers are also
+notified that input is complete.
 
 
 =head1 AUTHOR

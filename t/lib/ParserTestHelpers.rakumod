@@ -88,7 +88,14 @@ sub incomplete(@partial, $flusher) is export {
     my @parsed := parse-all(@input);
 
     subtest "Flush after @partial[]", {
-        is     @parsed.elems, 1, "One sequence flushed for @partial[]";
+        if $flusher.defined {
+            is @parsed.elems, 1, "One sequence flushed for @partial[]";
+        }
+        else {
+            is @parsed.elems, 2, "Two sequences flushed for @partial[] with undefined flusher";
+            nok @parsed[1].defined, "Second sequence is undefined";
+        }
+
         isa-ok @parsed[0], Terminal::ANSIParser::Incomplete,
                "Incomplete sequence recognized";
         is     @parsed[0].sequence, buf8.new(@partial),
