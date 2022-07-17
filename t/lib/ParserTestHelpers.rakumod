@@ -30,7 +30,7 @@ sub n-byte-simple-escape(@input, $n) is export {
         isa-ok $_, Terminal::ANSIParser::SimpleEscape for @parsed;
     }
     subtest "parsed results have correct length", {
-        is .sequence.bytes, $n for @parsed;
+        is .sequence.elems, $n for @parsed;
     }
     subtest "first byte of parsed results is an escape", {
         is .sequence[0], 0x1B for @parsed;
