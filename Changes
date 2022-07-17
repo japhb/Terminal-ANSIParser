@@ -1,6 +1,8 @@
 Revision history for Terminal-ANSIParser
 
 {{$NEXT}}
+
+0.0.3  2022-07-16T19:27:25-07:00
   - Handle already-decoded codepoints in input (now default behavior)
   - Support :raw-bytes option, forcing interpretation of input as raw bytes
     instead of codepoints
