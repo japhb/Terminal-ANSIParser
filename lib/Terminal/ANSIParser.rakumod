@@ -36,11 +36,11 @@ class APC          is String   { }
 
 
 # Builds an ANSI parser state machine and returns it
-sub make-ansi-parser(:&emit-item!) is export {
+sub make-ansi-parser(:&emit-item!, Bool:D :$raw-bytes = False) is export {
     my $state        = Ground;
     my $string-type  = String;
-    my $seq-buf-type = buf8;
-    my $str-buf-type = buf8;
+    my $seq-buf-type = $raw-bytes ?? buf8 !! buf32;
+    my $str-buf-type = $seq-buf-type;
     my Buf $sequence = $seq-buf-type.new;
     my Buf $string;
 
@@ -301,7 +301,14 @@ Terminal::ANSIParser - ANSI/VT stream parser
 use Terminal::ANSIParser;
 
 my @parsed;
-my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ });
+
+# Default: Assume UTF-8 decoded inputs, thus working with codepoints
+my &parse-codepoint := make-ansi-parser(emit-item => { @parsed.push: $_ });
+parse-codepoint($_) for $input-buffer.list;
+
+# Raw bytes: Assume raw byte stream input, for pre-Unicode terminal emulation
+my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ },
+                                   :raw-bytes);
 parse-byte($_) for $input-buffer.list;
 
 =end code
@@ -314,15 +321,17 @@ defined by the related specs ANSI X3.64, ECMA-48, ISO/IEC 6429, and of course
 the actual physical DEC VT terminals generally considered the standard for
 escape code behavior.
 
-The basic C<make-ansi-parser()> routine builds and returns a byte-by-byte
+The basic C<make-ansi-parser()> routine builds and returns a
+codepoint-by-codepoint (or byte-by-byte, if the C<:raw-bytes> option is True)
 table-based binary parsing state machine, based on (and extended from) the
 error-recovering state machine built from observed DEC VT behavior described at
 L<https://vt100.net/emu/dec_ansi_parser>.
 
-Each time the parser determines that it has parsed enough bytes, it emits a
+Each time the parser determines that it has parsed enough input, it emits a
 token representing the parsed data, which can take one of the following forms:
 
-=item A plain byte, for passed through data when no escape sequence is active
+=item A plain codepoint (or byte if C<:raw-bytes> is True), for passed through
+      data when no escape sequence is active
 
 =item A C<Terminal::ANSIParser::Sequence> object, if an escape sequence is parsed
 
@@ -354,9 +363,9 @@ Likewise, C<String> has its own subclasses:
 
 =head2 End of Input
 
-End of input can be signaled by parsing an undefined "byte"; any partial
-sequence in progress will be flushed as C<Incomplete>, and the undefined
-marker will be emitted as well, so that downstream consumers are also
+End of input can be signaled by parsing an undefined "codepoint"/"byte"; any
+partial sequence in progress will be flushed as C<Incomplete>, and the
+undefined marker will be emitted as well, so that downstream consumers are also
 notified that input is complete.
 
 
@@ -367,7 +376,7 @@ Geoffrey Broadwell <gjb@sonic.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2021 Geoffrey Broadwell
+Copyright 2021-2022 Geoffrey Broadwell
 
 This library is free software; you can redistribute it and/or modify it under
 the Artistic License 2.0.
