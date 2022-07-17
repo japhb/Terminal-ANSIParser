@@ -1,5 +1,11 @@
 Revision history for Terminal-ANSIParser
 
+{{$NEXT}}
+  - Handle already-decoded codepoints in input (now default behavior)
+  - Support :raw-bytes option, forcing interpretation of input as raw bytes
+    instead of codepoints
+
+
 0.0.2  2021-11-02
   - Improve behavior at end of input, passing EOI marker downstream
 
