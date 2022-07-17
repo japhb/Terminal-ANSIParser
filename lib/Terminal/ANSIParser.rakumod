@@ -11,13 +11,17 @@ enum DecodeState < Ground Escape Escape_Intermediate
 class Sequence {
     has $.sequence is required;
 
-    method Str { $.sequence.decode }
+    # Handle both buf8 (raw bytes) and buf32 (codepoints)
+    method Str { $!sequence ~~ buf8 ?? $!sequence.decode
+                                    !! $!sequence.map({ chr($_) }).join }
 }
 
 class String is Sequence {
     has $.string is required;
 
-    method Str { $.string.decode }
+    # Handle both buf8 (raw bytes) and buf32 (codepoints)
+    method Str { $!string ~~ buf8 ?? $!string.decode
+                                  !! $!string.map({ chr($_) }).join }
 }
 
 class Ignored      is Sequence { }
@@ -33,10 +37,12 @@ class APC          is String   { }
 
 # Builds an ANSI parser state machine and returns it
 sub make-ansi-parser(:&emit-item!) is export {
-    my $state          = Ground;
-    my $string-type    = String;
-    my buf8 $sequence .= new;
-    my buf8 $string;
+    my $state        = Ground;
+    my $string-type  = String;
+    my $seq-buf-type = buf8;
+    my $str-buf-type = buf8;
+    my Buf $sequence = $seq-buf-type.new;
+    my Buf $string;
 
     my @actions;
     my @default;
@@ -46,7 +52,7 @@ sub make-ansi-parser(:&emit-item!) is export {
 
     # Ignore a byte, by emitting it by itself as an Ignored Sequence
     my sub ignore-byte($byte) {
-        emit-item(Ignored.new(:sequence(buf8.new($byte))))
+        emit-item(Ignored.new(:sequence($seq-buf-type.new($byte))))
     }
 
     # Send an entire sequence (including current byte) as ignored, reset
@@ -54,7 +60,7 @@ sub make-ansi-parser(:&emit-item!) is export {
     my sub ignore-sequence($byte) {
         $sequence.push($byte);
         emit-item(Ignored.new(:$sequence));
-        $sequence .= new;
+        $sequence = $seq-buf-type.new;
         $state = Ground;
     }
 
@@ -65,7 +71,7 @@ sub make-ansi-parser(:&emit-item!) is export {
         if $sequence.elems {
             # XXXX: Should bare ESC be considered Incomplete?
             emit-item(Incomplete.new(:$sequence));
-            $sequence .= new;
+            $sequence = $seq-buf-type.new;
         }
         $byte.defined ?? $sequence.push($byte)
                       !! emit-item($byte);
@@ -77,14 +83,14 @@ sub make-ansi-parser(:&emit-item!) is export {
     my sub finish-sequence($byte, $type) {
         $sequence.push($byte);
         emit-item($type.new(:$sequence));
-        $sequence .= new;
+        $sequence = $seq-buf-type.new;
         $state = Ground;
     }
 
     # Start recording a "string" of a particular type
     my sub start-string($type) {
         $string-type = $type;
-        $string     .= new;
+        $string      = $str-buf-type.new;
     }
 
     # Buffer a byte into the current "string"
@@ -111,8 +117,8 @@ sub make-ansi-parser(:&emit-item!) is export {
             emit-item($st);
         }
 
-        $sequence .= new;
-        $state     = Ground;
+        $sequence = $seq-buf-type.new;
+        $state    = Ground;
     }
 
 
