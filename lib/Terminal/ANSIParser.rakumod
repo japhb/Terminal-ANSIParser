@@ -1,6 +1,6 @@
 # ABSTRACT: ANSI X3.64/ECMA-48/ISO/IEC 6429/DEC-VT stream parser
 
-unit module Terminal::ANSIParser:auth<zef:japhb>:ver<0.0.3>;
+unit module Terminal::ANSIParser:auth<zef:japhb>:ver<0.0.4>;
 
 
 enum DecodeState < Ground Escape Escape_Intermediate
