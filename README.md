@@ -21,6 +21,12 @@ parse-codepoint($_) for $input-buffer.list;
 my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ },
                                    :raw-bytes);
 parse-byte($_) for $input-buffer.list;
+
+# DEC Pedantic: Ignore xterm extensions, forcing pure DEC VT compatibility
+#               (implies :raw-bytes as well)
+my &parse-pedantic := make-ansi-parser(emit-item => { @parsed.push: $_ },
+                                       :dec-pedantic);
+parse-pedantic($_) for $input-buffer.list;
 ```
 
 DESCRIPTION

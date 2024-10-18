@@ -36,7 +36,9 @@ class APC          is String   { }
 
 
 # Builds an ANSI parser state machine and returns it
-sub make-ansi-parser(:&emit-item!, Bool:D :$raw-bytes = False) is export {
+sub make-ansi-parser(:&emit-item!,
+                     Bool:D :$dec-pedantic = False,
+                     Bool:D :$raw-bytes    = $dec-pedantic) is export {
     my $state        = Ground;
     my $string-type  = String;
     my $seq-buf-type = $raw-bytes ?? buf8 !! buf32;
@@ -192,7 +194,7 @@ sub make-ansi-parser(:&emit-item!, Bool:D :$raw-bytes = False) is export {
     #   Ground
     #   DCS_Passthrough
     #   DCS_Ignore
-    #   OSC_String
+    #   OSC_String (in $dec-pedantic mode)
     #   SOS_String
     #   PM_String
     #   APC_String
@@ -250,8 +252,17 @@ sub make-ansi-parser(:&emit-item!, Bool:D :$raw-bytes = False) is export {
     $dispatch[$_]   := &record-to-dcs-x for 0x30..0x3F;
 
     # OSC_String state actions
-    $dispatch        = @actions[OSC_String];
-    $dispatch[0x07] := &handle-st; # BEL can terminate in OSC as well
+    if !$dec-pedantic {
+        # A real (physical) DEC VT terminal would ignore BEL in OSC.  However,
+        # in xterm and other terminal emulators BEL can also terminate OSC
+        # and some applications depend on this behavior.  So unless forcing
+        # DEC pedantry, recognize the BEL behavior.  For more details, see the
+        # discussion near the top of:
+        #     https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+
+        $dispatch        = @actions[OSC_String];
+        $dispatch[0x07] := &handle-st;
+    }
 
 
     ### DEFAULT ACTIONS
@@ -314,6 +325,12 @@ parse-codepoint($_) for $input-buffer.list;
 my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ },
                                    :raw-bytes);
 parse-byte($_) for $input-buffer.list;
+
+# DEC Pedantic: Ignore xterm extensions, forcing pure DEC VT compatibility
+#               (implies :raw-bytes as well)
+my &parse-pedantic := make-ansi-parser(emit-item => { @parsed.push: $_ },
+                                       :dec-pedantic);
+parse-pedantic($_) for $input-buffer.list;
 
 =end code
 

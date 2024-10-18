@@ -1,6 +1,9 @@
 Revision history for Terminal-ANSIParser
 
 {{$NEXT}}
+  - Handle BEL as an OSC terminator as per xterm (now default behavior)
+  - Support :dec-pedantic option, forcing ignoring xterm extensions and
+    matching only physical DEC VT behavior (implies :raw-bytes)
 
 0.0.3  2022-07-16T19:27:25-07:00
   - Handle already-decoded codepoints in input (now default behavior)
