@@ -6,10 +6,11 @@ use Test;
 use Terminal::ANSIParser;
 
 
-sub parse-all(@input) is export {
+sub parse-all(@input, *%parse-options) is export {
     my @parsed;
-    my &parse-byte := make-ansi-parser(emit-item => { @parsed.push: $_ });
-    parse-byte($_) for @input;
+    my &parse-input := make-ansi-parser(emit-item => { @parsed.push: $_ },
+                                        |%parse-options);
+    parse-input($_) for @input;
 
     @parsed
 }
