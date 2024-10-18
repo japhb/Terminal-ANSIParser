@@ -249,6 +249,10 @@ sub make-ansi-parser(:&emit-item!, Bool:D :$raw-bytes = False) is export {
     $dispatch[$_]   := &record-to-dcs-i for 0x20..0x2F;
     $dispatch[$_]   := &record-to-dcs-x for 0x30..0x3F;
 
+    # OSC_String state actions
+    $dispatch        = @actions[OSC_String];
+    $dispatch[0x07] := &handle-st; # BEL can terminate in OSC as well
+
 
     ### DEFAULT ACTIONS
 
